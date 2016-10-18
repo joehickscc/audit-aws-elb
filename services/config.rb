@@ -19,28 +19,23 @@ coreo_aws_advisor_elb "advise-elb" do
   regions ${AUDIT_AWS_ELB_REGIONS}
 end
 
-coreo_uni_util_notify "advise-elb" do
-  action :notify
-  type 'email'
-  allow_empty ${AUDIT_AWS_ELB_ALLOW_EMPTY}
-  send_on "${AUDIT_AWS_ELB_SEND_ON}"
-  payload '{"stack name":"INSTANCE::stack_name",
-  "instance name":"INSTANCE::name",
-  "number_of_checks":"STACK::coreo_aws_advisor_elb.advise-elb.number_checks",
-  "number_of_violations":"STACK::coreo_aws_advisor_elb.advise-elb.number_violations",
-  "number_violations_ignored":"STACK::coreo_aws_advisor_elb.advise-elb.number_ignored_violations",
-  "violations": STACK::coreo_aws_advisor_elb.advise-elb.report }'
-  payload_type "json"
-  endpoint ({
-      :to => '${AUDIT_AWS_ELB_ALERT_RECIPIENT}', :subject => 'CloudCoreo elb advisor alerts on INSTANCE::stack_name :: INSTANCE::name'
-  })
-end
+# coreo_uni_util_notify "advise-elb" do
+#   action :notify
+#   type 'email'
+#   allow_empty ${AUDIT_AWS_ELB_ALLOW_EMPTY}
+#   send_on "${AUDIT_AWS_ELB_SEND_ON}"
+#   payload '{"stack name":"INSTANCE::stack_name",
+#   "instance name":"INSTANCE::name",
+#   "number_of_checks":"STACK::coreo_aws_advisor_elb.advise-elb.number_checks",
+#   "number_of_violations":"STACK::coreo_aws_advisor_elb.advise-elb.number_violations",
+#   "number_violations_ignored":"STACK::coreo_aws_advisor_elb.advise-elb.number_ignored_violations",
+#   "violations": STACK::coreo_aws_advisor_elb.advise-elb.report }'
+#   payload_type "json"
+#   endpoint ({
+#       :to => '${AUDIT_AWS_ELB_ALERT_RECIPIENT}', :subject => 'CloudCoreo elb advisor alerts on INSTANCE::stack_name :: INSTANCE::name'
+#   })
+# end
 
-# ################################################################
-# ## finds the instances launched more than 5 minutes ago that do not meet the tags and logic as specified
-# ## in the stack variables - returns a HTML table
-# ################################################################
-#
 coreo_uni_util_jsrunner "advise-elb-jsrunner" do
   action :run
   data_type "html"
@@ -121,7 +116,7 @@ for (instance_id in json_input) {
             raw_alert["violations"]["elb-old-ssl-policy"]["violating_object"] = {};
             raw_alert["violations"]["elb-old-ssl-policy"]["aws_console"] = aws_console;
             ret_alerts[instance_id] = raw_alert;
-            ret_table = ret_table + '{"instance id" : "' + instance_id + '", "region" : "' + region + '", "kill script" : "' + kill_cmd + '", "aws link" : "' + aws_console_html + '","aws tags" : "' + inst_tags_string + '"}, ';
+            ret_table = ret_table + '{"instance id" : "' + instance_id + '", "region" : "' + region + '", "aws link" : "' + aws_console_html + '"}, ';
             console.log("      instance is in violation: " + instance_id);
 }
     ret_table = ret_table.replace(/, $/, "");
@@ -129,9 +124,8 @@ for (instance_id in json_input) {
     ret_obj = JSON.parse(ret_table);
     html = tableify(ret_obj);
     html1 = '<p>Alerts powered by <img src="https://d1qb2nb5cznatu.cloudfront.net/startups/i/701250-e3792035663a30915a0b9ab26293b85b-medium_jpg.jpg?buster=1432673112"></p>';
-    html2 = "<p>AWS tags required: " + required_tags_lower_string + "</p><p>logic: " + logic + "</p>";
     html3 = "<p>Number of Instances: " + num_instances + "</p><p>Number in Violation: " + num_violations + "</p>";
-    html = html1 + html2 + html3 + html;
+    html = html1 + html3 + html;
     // add style
     html = style_section + html;
     callback(html);
