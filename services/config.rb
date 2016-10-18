@@ -192,8 +192,8 @@ end
 coreo_uni_util_notify "advise-elb-jsrunner" do
   action :notify
   type 'email'
-  allow_empty ${AUDIT_AWS_ELB_TAG_EXAMPLE_ALLOW_EMPTY}
-  send_on "${AUDIT_AWS_ELB_TAG_EXAMPLE_SEND_ON}"
+  allow_empty ${AUDIT_AWS_ELB_ALLOW_EMPTY}
+  send_on "${AUDIT_AWS_ELB_SEND_ON}"
   payload '
   STACK::coreo_uni_util_jsrunner.advise-elb-jsrunner.return
   <p>stack name: INSTANCE::stack_name</p>
@@ -201,6 +201,6 @@ coreo_uni_util_notify "advise-elb-jsrunner" do
   '
   payload_type "html"
   endpoint ({
-      :to => '${AUDIT_AWS_ELB_TAG_EXAMPLE_ALERT_RECIPIENT}', :subject => 'CloudCoreo elb advisor alerts on INSTANCE::stack_name :: INSTANCE::name'
+      :to => '${AUDIT_AWS_ELB_ALERT_RECIPIENT}', :subject => 'CloudCoreo elb advisor alerts on INSTANCE::stack_name :: INSTANCE::name'
   })
 end
