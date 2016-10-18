@@ -20,16 +20,6 @@ variables:
     required: true
     type: string
     default: "change"
-  AUDIT_AWS_ELB_EXPECTED_TAGS:
-    description: the tag(s) we want to see on instances
-    required: true
-    type: string
-    default: '"EXAMPLE_TAG_1", "EXAMPLE_TAG_2"'
-  AUDIT_AWS_ELB_TAG_LOGIC:
-    description: '"or" or "and"'
-    required: true
-    type: string
-    default: '"and"'
   AUDIT_AWS_ELB_REGIONS:
     description: list of AWS regions to check. Default is all regions
     required: true
