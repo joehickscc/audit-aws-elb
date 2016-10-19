@@ -122,8 +122,8 @@ for (violation_id in json_input) {
     ret_obj = JSON.parse(ret_table);
     html = tableify(ret_obj);
     html1 = '<p>Alerts powered by <img src="https://d1qb2nb5cznatu.cloudfront.net/startups/i/701250-e3792035663a30915a0b9ab26293b85b-medium_jpg.jpg?buster=1432673112"></p>';
-    html3 = "<p>Number of ELB SSL Listeners: " + num_certs + "</p><p>Number in Violation: " + num_violations + "</p>";
-    html = html1 + html3 + html;
+    //html3 = "<p>Number of ELB SSL Listeners: " + num_certs + "</p><p>Number in Violation: " + num_violations + "</p>";
+    html = html1 + html;
     // add style
     html = style_section + html;
     callback(html);
@@ -140,6 +140,9 @@ coreo_uni_util_notify "advise-elb-jsrunner" do
   send_on "${AUDIT_AWS_ELB_SEND_ON}"
   payload '
   STACK::coreo_uni_util_jsrunner.advise-elb-jsrunner.return
+  <p>number of ELB SSL Listeners: STACK::coreo_aws_advisor_elb.advise-elb.number_checks</p>
+  <p>number of ELB SSL Listener violations: STACK::coreo_aws_advisor_elb.advise-elb.number_violations</p>
+  <p>number of ignored violations: STACK::coreo_aws_advisor_elb.advise-elb.number_ignored_violations</p>
   <p>stack name: INSTANCE::stack_name</p>
   <p>instance name: INSTANCE::name</p>
   '
