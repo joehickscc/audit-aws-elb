@@ -109,11 +109,9 @@ for (instance_id in json_input) {
             num_violations++;
             raw_alert = json_input[instance_id];
             region = raw_alert["violations"]["elb-old-ssl-policy"]["region"];
-            //aws_console = "https://console.aws.amazon.com/ec2/v2/home?region=" + region + "#Instances:search=" + instance_id + ";sort=vpcId";
-            aws_console = "https://console.aws.amazon.com/ec2/v2/home?region=" + region + "#Instances:search=" + instance_id + "";
-            // leave off the violating_object to reduce size of the json
+            aws_console = "https://console.aws.amazon.com/ec2/v2/home?region=" + region + "#LoadBalancers:search=" + instance_id + "";
             aws_console_html = "<a href=" + aws_console + ">AWS Console</a>";
-            raw_alert["violations"]["elb-old-ssl-policy"]["violating_object"] = {};
+            //raw_alert["violations"]["elb-old-ssl-policy"]["violating_object"] = {};
             raw_alert["violations"]["elb-old-ssl-policy"]["aws_console"] = aws_console;
             ret_alerts[instance_id] = raw_alert;
             ret_table = ret_table + '{"instance id" : "' + instance_id + '", "region" : "' + region + '", "aws link" : "' + aws_console_html + '"}, ';
