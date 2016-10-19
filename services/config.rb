@@ -102,27 +102,27 @@ ret_alerts = {};
 ret_table = "[";
 var BreakException = {};
 num_violations = 0;
-num_instances = 0;
-for (instance_id in json_input) {
-  num_instances++;
-    console.log("examining instance: " + instance_id);
+num_certs = 0;
+for (violation_id in json_input) {
+  num_certs++;
+    console.log("examining violation: " + violation_id);
             num_violations++;
-            raw_alert = json_input[instance_id];
+            raw_alert = json_input[violation_id];
             region = raw_alert["violations"]["elb-old-ssl-policy"]["region"];
-            aws_console = "https://console.aws.amazon.com/ec2/v2/home?region=" + region + "#LoadBalancers:search=" + instance_id + "";
+            aws_console = "https://console.aws.amazon.com/ec2/v2/home?region=" + region + "#LoadBalancers:search=" + violation_id + "";
             aws_console_html = "<a href=" + aws_console + ">AWS Console</a>";
             //raw_alert["violations"]["elb-old-ssl-policy"]["violating_object"] = {};
             raw_alert["violations"]["elb-old-ssl-policy"]["aws_console"] = aws_console;
-            ret_alerts[instance_id] = raw_alert;
-            ret_table = ret_table + '{"instance id" : "' + instance_id + '", "region" : "' + region + '", "aws link" : "' + aws_console_html + '"}, ';
-            console.log("      instance is in violation: " + instance_id);
+            ret_alerts[violation_id] = raw_alert;
+            ret_table = ret_table + '{"violation object" : "' + violation_id + '", "region" : "' + region + '", "aws link" : "' + aws_console_html + '"}, ';
+            console.log("      object is in violation: " + violation_id);
 }
     ret_table = ret_table.replace(/, $/, "");
     ret_table = ret_table + "]";
     ret_obj = JSON.parse(ret_table);
     html = tableify(ret_obj);
     html1 = '<p>Alerts powered by <img src="https://d1qb2nb5cznatu.cloudfront.net/startups/i/701250-e3792035663a30915a0b9ab26293b85b-medium_jpg.jpg?buster=1432673112"></p>';
-    html3 = "<p>Number of Instances: " + num_instances + "</p><p>Number in Violation: " + num_violations + "</p>";
+    html3 = "<p>Number of ELB SSL Listeners: " + num_certs + "</p><p>Number in Violation: " + num_violations + "</p>";
     html = html1 + html3 + html;
     // add style
     html = style_section + html;
