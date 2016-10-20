@@ -1,3 +1,0 @@
-[submodule "panel"]
-	path = panel
-	url = git@github.com:CloudCoreo/audit-panel.git
