@@ -50,6 +50,12 @@ variables:
     required: true
     type: string
     default: "nothing"  
+  AUDIT_AWS_ELB_POLICY_NAME:
+    description: Policy name to check for.
+    required: true
+    type: array
+    default:
+      - ELBSecurityPolicy-2016-08
   AUDIT_AWS_ELB_REGIONS:
     description: list of AWS regions to check. Default is us-east-1.
     required: true
