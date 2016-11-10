@@ -78,204 +78,218 @@ coreo_uni_util_jsrunner "tags-to-notifiers-array" do
                 "instance_name":"PLAN::name",
                 "violations": COMPOSITE::coreo_aws_advisor_elb.advise-elb.report}'
   function <<-EOH
-var tableify = require('tableify');
-var style_section = "\
-<style>body {\
-font-family :arial;\
-padding : 0px;\
-margin : 0px;\
-}\
-\
-table {\
-font-size: 10pt;\
-border-top : black 1px solid;\
-border-right : black 1px solid;\
-/* border-spacing : 10px */\
-border-collapse : collapse;\
-}\
-\
-td, th {\
-text-align : left;\
-vertical-align : top;\
-white-space: nowrap;\
-overflow: hidden;\
-text-overflow: ellipsis;\
-border-left : black 1px solid;\
-border-bottom: black 1px solid;\
-padding-left : 4px;\
-padding-right : 4px;\
-}\
-\
-th {\
-background-color : #aaaaaa;\
-}\
-\
-td.number {\
-color : blue\
-}\
-\
-td.boolean {\
-color : green;\
-font-style : italic;\
-}\
-\
-td.date {\
-color : purple;\
-}\
-\
-td.null:after {\
-color : gray;\
-font-style : italic;\
-content : null;\
-}\
-</style>\
-";
-payloads = {};
-notifiers = [];
-results = json_input["violations"];
-stack_name = json_input["stack_name"];
-instance_name = json_input["instance_name"];
-for (elb_id in results) {
-  ret_table = "";
-  tags_str = "";
-  tags = results[elb_id]['tags'];
-  for (var i = 0; i < tags.length; i++) {
-    this_tag_key = tags[i]['key'];
-    tags_str = tags_str + this_tag_key + ", ";
-  }
+const results = json_input["violations"];
+const stack_name = json_input["stack_name"];
+const instance_name = json_input["instance_name"];
+
+let hasTableHeader = false;
+let hasPanelHTML = false;
+
+function createTagsStr(tags) {
+  let tags_str = '';
+  tags.forEach(tag => {
+    tags_str += tag['key'] + ', ';
+  });
   tags_str = tags_str.replace(/, $/, "");
-  found_owner_tag = false;
-  owner_tag_val = "${AUDIT_AWS_ELB_ALERT_NO_OWNER_RECIPIENT}";
-  if (owner_tag_val == "") {
-    owner_tag_val = "NONE";
-  }
-  for (var i = 0; i < tags.length; i++) {
-    if (tags[i]['key'] === '${AUDIT_AWS_ELB_OWNER_TAG}') {
-      found_owner_tag = true;
-      owner_tag_val = tags[i]['value'];
-    }
-  }
+  return tags_str;
+}
 
-  var violation_keys = Object.keys( results[elb_id]["violations"] );
-  for (var j = 0, length = violation_keys.length; j < length; j++) {
-    this_violation = results[elb_id]["violations"][violation_keys[j]];
-    this_rule_name = violation_keys[j];
-    region = this_violation["region"];
-    violating_object = this_violation["violating_object"];
-    if (typeof violating_object == "undefined" || violating_object === null){
-      violating_object = "";
+function createOwnerTagVal(tags) {
+  let owner_tag_val = "${AUDIT_AWS_ELB_ALERT_NO_OWNER_RECIPIENT}" || 'NONE';
+  tags.forEach(tag => {
+    let hasTagKeyInAuditTag = tag['key'] === '${AUDIT_AWS_ELB_OWNER_TAG}';
+    hasTagKeyInAuditTag = true;
+    if (hasTagKeyInAuditTag) {
+      owner_tag_val = tag['value'];
     }
-    if (typeof violating_object == "object") {
-      violating_object = "";
-    }
-    category = this_violation["category"];
-    description = this_violation["description"];
-    display_name = this_violation["display_name"];
-    level = this_violation["level"];
-    kb_link = this_violation["link"];
-    action = this_violation["suggested_action"];
-    aws_console = "https://console.aws.amazon.com/ec2/v2/home?region=" + region + "#LoadBalancers:search=" + elb_id + "";
-    aws_console_html = "<a href=" + aws_console + ">AWS Console</a>";
-    violation_entry = '"violating object" : "' + violating_object + '", ';
-    if (violating_object == "") {
-      violation_entry = "";
-    }
-    ret_table =
-        '{' +
-        '"ELB id" : "' + elb_id + '", ' +
-        '"region" : "' + region + '", ' +
-        '"aws link" : "' + aws_console_html + '", ' +
-        violation_entry +
-        '"aws tags" : "' + tags_str + '"' +
-        '}';
+  });
+  return owner_tag_val;
+}
 
-    if (typeof kb_link == "undefined" || kb_link === null){
-      kb_html = "";
-    } else {
-      kb_html = "<a href=" + kb_link + ">CloudCoreo Knowledge Base</a>";
-    }
-    if (typeof display_name == "undefined" || display_name === null){
-      display_name = "";
-    }
-    if (typeof category == "undefined" || category === null){
-      category = "";
-    }
-    if (typeof action == "undefined" || action === null){
-      action = "";
-    }
-    if (typeof level == "undefined" || level === null){
-      level = "";
-    }
-    if (typeof description == "undefined" || description === null){
-      description = "";
-    }
-    ret_metadata =
-        '{' +
-        '"display name" : "' + display_name + '", ' +
-        '"rule id" : "' + this_rule_name + '", ' +
-        '"category" : "' + category + '", ' +
-        '"kb link" : "' + kb_html + '", ' +
-        '"suggested action" : "' + action + '", ' +
-        '"level" : "' + level + '", ' +
-        '"description" : "' + description + '"' +
-        '}';
+function createKbHTML(kb_link) {
+  let kb_html = '';
+  if (kb_link) {
+    kb_html = "<a href=" + kb_link + ">CloudCoreo Knowledge Base</a>";
+  }
+  return kb_html;
+}
+
+function createLayoutColor(level) {
+  const colors = { red: '#e53e2b', yellow: '#e49530', dark: '#6b6b6b' };
+  if (level == 'Critical') {
+    return colors.red;
+  }
+  console.log(level);
+  if (level == 'Warning') {
+    return colors.yellow;
+  }
+  return colors.dark;
+}
+
+function createViolationPanelHTML(violation, alertId) {
+  const display_name = violation["display_name"] || '';
+  const level = violation["level"] || '';
+  const category = violation["category"] || '';
+  const description = violation["description"] || '';
+  const action = violation["suggested_action"] || '';
+
+  const kb_html = createKbHTML(violation["link"]);
+
+  const layoutColor = createLayoutColor(level);
+
+  return `<div style="border:1px solid ` + layoutColor + `;border-left-width:10px;font-family:sans-serif;color:#333333;max-width:700px;font-size: 14px;margin-bottom:20px;">
+        <div style="padding: 15px;overflow: hidden;border-bottom:1px solid #d4d4d4;margin-bottom: 15px;">
+          <span style="font-size: 18px;font-weight: bold;line-height: 20px;float: left;">
+            ` + display_name + `
+          </span>
+          <span style="float: right;color:#6B6B6B;line-height: 20px;">` + level + `</span>
+          <span style="width: 100%;float: left;line-height: 16px;">Alert ID: ` + alertId + `</span>
+        </div>
+        <div style="padding: 0 15px;">
+          <div>
+            <i style="line-height: 18px;">Category</i>
+            <p style="line-height:16px;margin:0 0 20px;">` + category + `</p>
+          </div>
+          <div>
+          <i style="line-height: 18px;">Description</i>
+          <p style="line-height:16px;margin:0 0 20px;">
+            ` + description + `
+          </p>
+        </div>
+      </div>
+      <div style="background: #e2e2e2; padding: 15px 15px 2px;">
+        <i style="line-height: 18px;">Suggested Fix</i>
+        <p style="line-height:16px;margin:0 0 20px;">
+          ` + action + `
+        </p>
+        <p>` + kb_html + `</p>
+      </div>
+    </div>`;
+}
+
+function createViolationTableHTML(violation, elb_id, tags_str) {
+  const level = violation["level"] || '';
+  const region = violation["region"];
+  const aws_console = "https://console.aws.amazon.com/ec2/v2/home?region=" + region
+      + "#LoadBalancers:search=" + elb_id + "";
+  const aws_console_html = "<a href=" + aws_console + ">AWS Console</a>";
+  tags_str = tags_str || 'NONE';
+
+  const layoutColor = createLayoutColor(level);
+
+  if (!hasTableHeader) {
+    hasTableHeader = true;
+    return `<div style="display:flex; flex-wrap: wrap; text-align: center; font-weight: bold; font-family:sans-serif;color:#333333;max-width:711px;font-size: 14px;">
+              <div style=" width:calc(25% - 32px);border: 1px solid #e53e2b; border-left-width:10px;padding: 10px;">ELB id</div>
+              <div style="  width:calc(25% - 22px);border: 1px solid #e53e2b;padding: 10px;">region</div>
+              <div style="  width:calc(25% - 22px);border: 1px solid #e53e2b;padding: 10px;">aws link</div>
+              <div style="  width:calc(25% - 22px);border: 1px solid #e53e2b;padding: 10px;">aws tags</div>
+          </div>
+          <div style="display:flex; flex-wrap: wrap;text-align: center; font-family:sans-serif;color:#333333;max-width:711px;font-size: 14px;">
+              <div style="display:flex; flex-wrap:wrap; align-items: center;justify-content: center; width:calc(25% - 32px);border: 1px solid ` + layoutColor + `; border-left-width:10px;padding: 10px;">` + elb_id + `</div>
+              <div style="display:flex; flex-wrap:wrap; align-items: center;justify-content: center;  width:calc(25% - 22px);border: 1px solid ` + layoutColor + `;padding: 10px;">` + region + `</div>
+              <div style="display:flex; flex-wrap:wrap; align-items: center;justify-content: center;  width:calc(25% - 22px);border: 1px solid ` + layoutColor + `;padding: 10px;">` + aws_console_html + `</div>
+              <div style="display:flex; flex-wrap:wrap; align-items: center;justify-content: center;  width:calc(25% - 22px);border: 1px solid ` + layoutColor + `;padding: 10px;"><span style="background-color: rgba(215, 215, 215, 1);padding: 8px;border-radius: 5px; margin:5px 0">` + tags_str + `</span></div>
+          </div>`
+  } else {
+    return ` <div style="display:flex; flex-wrap: wrap;text-align: center; font-family:sans-serif;color:#333333;max-width:711px;font-size: 14px;">
+                <div style="display:flex; flex-wrap:wrap; align-items: center;justify-content: center; width:calc(25% - 32px);border: 1px solid ` + layoutColor + `; border-left-width:10px;padding: 10px;">` + elb_id + `</div>
+                <div style="display:flex; flex-wrap:wrap; align-items: center;justify-content: center;  width:calc(25% - 22px);border: 1px solid ` + layoutColor + `;padding: 10px;">` + region + `</div>
+                <div style="display:flex; flex-wrap:wrap; align-items: center;justify-content: center;  width:calc(25% - 22px);border: 1px solid ` + layoutColor + `;padding: 10px;">` + aws_console_html + `</div>
+                <div style="display:flex; flex-wrap:wrap; align-items: center;justify-content: center;  width:calc(25% - 22px);border: 1px solid ` + layoutColor + `;padding: 10px;"><span style="background-color: rgba(215, 215, 215, 1);padding: 8px;border-radius: 5px; margin:5px 0">` + tags_str + `</span></div>
+            </div>`;
+  }
+}
+
+function payloadsCreateArray(elb_id, owner_tag_val, payloads) {
+  const violation_keys = Object.keys(results[elb_id]["violations"]);
+  violation_keys.forEach(violation_key => {
     if (!payloads.hasOwnProperty(owner_tag_val)) {
       payloads[owner_tag_val] = {};
     }
-    if (!payloads[owner_tag_val].hasOwnProperty(this_rule_name)) {
-      payloads[owner_tag_val][this_rule_name] = {};
-      payloads[owner_tag_val][this_rule_name]["metadata"] = [];
-      payloads[owner_tag_val][this_rule_name]["objects"] = [];
+    if (!payloads[owner_tag_val].hasOwnProperty(violation_key)) {
+      payloads[owner_tag_val][violation_key] = {};
+      payloads[owner_tag_val][violation_key]["metadata"] = [];
+      payloads[owner_tag_val][violation_key]["objects"] = [];
     }
-    payloads[owner_tag_val][this_rule_name]["metadata"].push(ret_metadata);
-    payloads[owner_tag_val][this_rule_name]["objects"].push(ret_table);
-  }
+  });
 }
 
-for (email in payloads) {
-  nviolations = 0;
-  var endpoint = {};
-  endpoint['to'] = email;
-  var notifier = {};
-  notifier['type'] = 'email';
-  notifier['send_on'] = 'always';
-  notifier['allow_empty'] = 'true';
-  notifier['payload_type'] = 'html';
-  notifier['endpoint'] = endpoint;
-  notifier['payload'] = "";
-  notifier['num_violations'] = "";
+function createObjectData(elb_id, owner_tag_val, payloads, tags_str) {
+  let violation_keys = Object.keys(results[elb_id]["violations"]);
+  const violation_key = violation_keys[0];
 
-  html_obj = "";
-  var alert_rule_keys = Object.getOwnPropertyNames( payloads[email] );
-  for (var j = 0, length = alert_rule_keys.length; j < length; j++) {
-    this_rule_violations = payloads[email][alert_rule_keys[j]]["objects"];
-    this_rule_metadata = payloads[email][alert_rule_keys[j]]["metadata"];
+  const violation = results[elb_id]["violations"][violation_key];
+  const violationTableHTML = createViolationTableHTML(violation, elb_id, tags_str);
+  const payloadTableArrayHTML = payloads[owner_tag_val][violation_key]["objects"];
 
-    this_rule_name = alert_rule_keys[j];
-    nviolations = nviolations + this_rule_violations.length;
+  payloadTableArrayHTML.push(violationTableHTML);
+}
 
-    table_obj = this_rule_violations.join();
-    table_obj = "[" + table_obj + "]";
-    table_json_obj = JSON.parse(table_obj);
-    this_html_obj = tableify(table_json_obj);
+function createMetaData(elb_id, owner_tag_val, payloads) {
+  let violation_keys = Object.keys(results[elb_id]["violations"]);
+  const violation_key = violation_keys[0];
 
-    table_obj_metadata = this_rule_metadata[0];
-    table_obj_metadata = "[" + table_obj_metadata + "]";
-    table_json_metadata_obj = JSON.parse(table_obj_metadata);
-    this_html_metadata_obj = tableify(table_json_metadata_obj);
-
-    html_obj = html_obj + this_html_metadata_obj + this_html_obj + '</br>';
+  const violation = results[elb_id]["violations"][violation_key];
+  let violationPanelHTML = '';
+  if(!hasPanelHTML) {
+    hasPanelHTML = true;
+    violationPanelHTML = createViolationPanelHTML(violation, elb_id);
   }
-  html_obj = style_section + html_obj;
+  const payloadPanelArrayHTML = payloads[owner_tag_val][violation_key]["metadata"];
 
-  notifier['payload'] = html_obj;
-  notifier['num_violations'] = nviolations.toString();
-
-  if (email != "NONE") {
-    notifiers.push(notifier);
-  }
+  payloadPanelArrayHTML.push(violationPanelHTML);
 
 }
+
+function createPayloads() {
+  const payloads = {};
+
+  Object.keys(results).forEach(function (violation) {
+    const tags = results[violation]['tags'];
+    const tags_str = createTagsStr(tags);
+    const owner_tag_val = createOwnerTagVal(tags);
+    payloadsCreateArray(violation, owner_tag_val, payloads);
+    createMetaData(violation, owner_tag_val, payloads);
+    createObjectData(violation, owner_tag_val, payloads, tags_str);
+  });
+
+  return payloads;
+}
+
+function createNotifierHTML(email, payloads) {
+  const emailPanelHTML = payloads[email]['elb-old-ssl-policy']['metadata'][0];
+  const emailTableHTML = payloads[email]['elb-old-ssl-policy']['objects'][0];
+  const violationHTML = emailPanelHTML + emailTableHTML;
+  return violationHTML;
+}
+
+function createNotifiers() {
+  const payloads = createPayloads();
+  const notifiers = [];
+  let notifierHTML = '';
+  let num_violations = (Object.keys(payloads).length).toString();
+  for (let email in payloads) {
+    const endpoint = { 'to': email };
+    notifierHTML += createNotifierHTML(email, payloads);
+    const notifier = {
+      'type': 'email',
+      'send_on': 'always',
+      'allow_empty': 'true',
+      'payload_type': 'html',
+      'endpoint': endpoint,
+      'payload': notifierHTML,
+      'num_violations': num_violations
+    };
+    if (email != "NONE") {
+      notifiers.push(notifier);
+    }
+  }
+  return notifiers;
+}
+let notifiers = createNotifiers();
+notifiers = [notifiers[notifiers.length - 1]];
+
 callback(notifiers);
 EOH
 end
@@ -350,5 +364,4 @@ COMPOSITE::coreo_uni_util_jsrunner.tags-rollup.return
       :to => '${AUDIT_AWS_ELB_ALERT_RECIPIENT}', :subject => 'CloudCoreo elb advisor alerts on PLAN::stack_name :: PLAN::name'
   })
 end
-
 
