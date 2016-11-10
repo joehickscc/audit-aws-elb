@@ -67,7 +67,7 @@ end
 
 ## This is part of tag parsing code.
 coreo_uni_util_jsrunner "tags-to-notifiers-array" do
-  action :nothing
+  action :run
   data_type "json"
   packages([
         {
