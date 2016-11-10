@@ -7,6 +7,7 @@ coreo_aws_advisor_alert "elb-inventory" do
   suggested_action "None."
   level "Information"
   objectives ["load_balancers"]
+  id_map "object.load_balancer_name"
   audit_objects ["load_balancer_descriptions.load_balancer_name"]
   operators ["=~"]
   alert_when [//]
