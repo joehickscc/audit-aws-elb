@@ -58,7 +58,7 @@ coreo_aws_advisor_alert "elb-health-check-interval" do
   objectives ["load_balancers"]
   audit_objects ["object.load_balancer_descriptions.health_check.interval"]
   operators [">"]
-  alert_when [120]
+  alert_when [1]
 end
 
 coreo_aws_advisor_elb "advise-elb" do
