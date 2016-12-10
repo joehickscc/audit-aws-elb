@@ -47,6 +47,20 @@ coreo_aws_advisor_alert "elb-current-ssl-policy" do
   alert_when     ["", /\[\"?(?:ELBSecurityPolicy-2016-08)?\"?\]/]
 end
 
+coreo_aws_advisor_alert "elb-health-check-interval" do
+  action :define
+  service :elb
+  display_name "ELB Health Check Interval"
+  description "This rule checks the interval of the ELB health check to ensure that it is not too long between health checks."
+  category "Health"
+  suggested_action "Lower the ELB health check interval to ensure that you are checking your ELBs frequently enough."
+  level "Warning"
+  objectives ["load_balancers"]
+  audit_objects ["object.load_balancer_descriptions.health_check.interval"]
+  operators [">"]
+  alert_when [120]
+end
+
 coreo_aws_advisor_elb "advise-elb" do
   alerts ${AUDIT_AWS_ELB_ALERT_LIST}
   action :advise
